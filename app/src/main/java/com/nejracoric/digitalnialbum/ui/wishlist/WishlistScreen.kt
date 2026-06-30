@@ -67,6 +67,7 @@ fun WishlistScreen(onOpenDetail: (Int) -> Unit) {
                                 StickerImage(
                                     url = sticker.imageUrl,
                                     name = sticker.name,
+                                    stickerId = sticker.id,
                                     size = 58.dp,
                                     owned = sticker.owned,
                                     isGolden = sticker.isGolden

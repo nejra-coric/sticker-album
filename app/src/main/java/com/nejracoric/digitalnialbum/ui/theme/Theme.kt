@@ -5,31 +5,26 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val FifaColorScheme = darkColorScheme(
-    primary = FifaGreen,
-    onPrimary = FifaNavy,
-    primaryContainer = Color(0xFF0D3D2B),
-    onPrimaryContainer = FifaGreen,
-    secondary = FifaGold,
-    onSecondary = FifaNavy,
-    secondaryContainer = Color(0xFF3D3200),
-    onSecondaryContainer = FifaGold,
-    tertiary = FifaCyan,
-    onTertiary = FifaNavy,
-    background = FifaNavy,
-    onBackground = FifaWhite,
-    surface = FifaNavyLight,
-    onSurface = FifaWhite,
-    surfaceVariant = FifaNavyCard,
-    onSurfaceVariant = FifaGray,
-    outline = Color(0xFF2E3A5C),
-    error = Color(0xFFFF5252)
+private val GlassScheme = darkColorScheme(
+    primary = NeonCyan,
+    onPrimary = DarkBlueBackground,
+    primaryContainer = Color(0xFF0D2840),
+    secondary = GoldAccent,
+    onSecondary = DarkBlueBackground,
+    tertiary = MagentaAccent,
+    background = DarkBlueBackground,
+    onBackground = TextWhite,
+    surface = DarkBlueSurface,
+    onSurface = TextWhite,
+    surfaceVariant = Color(0xFF1A2340),
+    onSurfaceVariant = TextGray,
+    outline = GlassBorder
 )
 
 @Composable
 fun DigitalniAlbumTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = FifaColorScheme,
+        colorScheme = GlassScheme,
         typography = Typography,
         content = content
     )

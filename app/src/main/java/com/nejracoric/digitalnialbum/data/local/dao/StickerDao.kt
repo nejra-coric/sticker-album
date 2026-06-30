@@ -71,4 +71,10 @@ interface StickerDao {
 
     @Query("SELECT COUNT(*) FROM stickers")
     fun observeTotalCount(): Flow<Int>
+
+    @Query("SELECT MAX(obtainedAt) FROM owned_stickers")
+    suspend fun latestObtainedAt(): Long?
+
+    @Query("SELECT stickerId FROM owned_stickers WHERE obtainedAt = :ts ORDER BY rowId ASC")
+    suspend fun stickerIdsAt(ts: Long): List<Int>
 }

@@ -4,13 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.nejracoric.digitalnialbum.data.repository.StickerRepository
+import com.nejracoric.digitalnialbum.util.resolveCrestUrl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class DetailUiState(
     val sticker: com.nejracoric.digitalnialbum.data.model.Sticker? = null,
+    val crestUrl: String? = null,
     val loading: Boolean = true,
     val message: String? = null
 )
@@ -25,20 +28,36 @@ class DetailViewModel(
 
     init {
         viewModelScope.launch {
-            repository.stickers.collect { list ->
-                list.find { it.id == stickerId }?.let { item ->
-                    _state.update { it.copy(sticker = item, loading = false, message = null) }
+            combine(repository.stickers, repository.crestUrls) { list, crests ->
+                val item = list.find { it.id == stickerId }
+                if (item != null) {
+                    _state.update {
+                        it.copy(
+                            sticker = item,
+                            crestUrl = resolveCrestUrl(item.team, crests),
+                            loading = false,
+                            message = null
+                        )
+                    }
                 }
-            }
+            }.collect { }
         }
         viewModelScope.launch {
             val item = repository.getSticker(stickerId)
-            _state.update {
-                it.copy(
-                    sticker = item,
-                    loading = false,
-                    message = if (item == null) "Sličica nije pronađena" else null
-                )
+            if (item != null) {
+                val crests = repository.crestUrls.value
+                _state.update {
+                    it.copy(
+                        sticker = item,
+                        crestUrl = resolveCrestUrl(item.team, crests),
+                        loading = false,
+                        message = null
+                    )
+                }
+            } else if (_state.value.sticker == null) {
+                _state.update {
+                    it.copy(loading = false, message = "Sličica nije pronađena")
+                }
             }
         }
     }

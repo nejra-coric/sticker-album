@@ -8,14 +8,23 @@ import com.nejracoric.digitalnialbum.data.local.entity.StickerEntity
 import com.nejracoric.digitalnialbum.data.local.entity.WishlistEntity
 import com.nejracoric.digitalnialbum.data.model.Sticker
 import com.nejracoric.digitalnialbum.data.model.TeamProgress
+import com.nejracoric.digitalnialbum.data.remote.ApiConfig
 import com.nejracoric.digitalnialbum.data.remote.RetrofitClient
 import com.nejracoric.digitalnialbum.data.remote.dto.PlayerDto
 import com.nejracoric.digitalnialbum.data.remote.dto.TeamDto
+import com.nejracoric.digitalnialbum.util.ImageCache
 import com.nejracoric.digitalnialbum.util.NetworkMonitor
+import com.nejracoric.digitalnialbum.util.buildCrestMap
+import com.nejracoric.digitalnialbum.util.resolveCrestUrl
+import com.nejracoric.digitalnialbum.util.teamCodeFromName
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import retrofit2.HttpException
 
 sealed class RepoResult<out T> {
     data class Success<T>(val data: T) : RepoResult<T>()
@@ -27,7 +36,10 @@ class StickerRepository(
     private val db: AppDatabase = AppDatabase.get(context),
     private val networkMonitor: NetworkMonitor = NetworkMonitor(context)
 ) {
+    private val appContext = context.applicationContext
     private val dao = db.stickerDao()
+    private val _crestUrls = MutableStateFlow(defaultCrestMap())
+    val crestUrls: StateFlow<Map<String, String>> = _crestUrls.asStateFlow()
 
     val isOnline = networkMonitor.isOnline
 
@@ -69,22 +81,56 @@ class StickerRepository(
         list.filter { it.ownedCount > 1 }
     }
 
-    suspend fun refreshFromNetwork(): RepoResult<Unit> {
+    /**
+     * Učitava podatke iz mreže samo ako je keš prazan ili je force=true (pull-to-refresh).
+     * API je limitiran na 100 poziva/sat — ne zovi API pri svakom otvaranju app-a.
+     */
+    suspend fun refreshFromNetwork(force: Boolean = false): RepoResult<Unit> {
+        val cached = dao.catalogCount()
+        ensureDefaultCrests()
+
+        if (!force && cached > 0) {
+            return RepoResult.Success(Unit)
+        }
+
         return try {
             val remote = RetrofitClient.api.getAllPlayers()
             if (remote.isEmpty()) {
                 RepoResult.Error("API je vratio praznu listu.")
             } else {
                 dao.insertAll(remote.map { it.toEntity() })
+                tryRefreshCrestsFromApi()
+                prefetchCachedImages(includeFullCatalog = true)
                 RepoResult.Success(Unit)
             }
         } catch (e: Exception) {
-            if (dao.catalogCount() == 0) {
-                RepoResult.Error("Nema interneta i nema keširanih podataka.")
-            } else {
-                RepoResult.Error("Offline – prikaz keširanih podataka.")
+            when {
+                cached == 0 -> RepoResult.Error(apiErrorMessage(e, "Nema interneta i nema keširanih podataka."))
+                else -> RepoResult.Error(apiErrorMessage(e, "Prikaz keširanih podataka."))
             }
         }
+    }
+
+    private suspend fun tryRefreshCrestsFromApi() {
+        try {
+            _crestUrls.value = buildCrestMap(RetrofitClient.api.getTeams())
+        } catch (_: Exception) {
+            ensureDefaultCrests()
+        }
+    }
+
+    private fun ensureDefaultCrests() {
+        if (_crestUrls.value.isEmpty()) {
+            _crestUrls.value = defaultCrestMap()
+        }
+    }
+
+    suspend fun getLastOpenedPack(): List<Sticker> {
+        val ts = dao.latestObtainedAt() ?: return emptyList()
+        val ids = dao.stickerIdsAt(ts)
+        if (ids.isEmpty()) return emptyList()
+        val all = stickers.first()
+        return ids.mapNotNull { id -> all.find { it.id == id } }
     }
 
     suspend fun openPack(): RepoResult<List<Sticker>> {
@@ -107,10 +153,14 @@ class StickerRepository(
                         isWished = dao.isWished(dto.id)
                     )
                 }
+                ImageCache.prefetchStickers(
+                    appContext,
+                    pack.map { it.id to it.imageUrl().ifBlank { ApiConfig.stickerImageUrl(it.id) } }
+                )
                 RepoResult.Success(result)
             }
         } catch (e: Exception) {
-            RepoResult.Error(e.message ?: "Nije moguće otvoriti paketić")
+            RepoResult.Error(apiErrorMessage(e, "Nije moguće otvoriti paketić."))
         }
     }
 
@@ -118,23 +168,18 @@ class StickerRepository(
         return try {
             RepoResult.Success(RetrofitClient.api.getTeams())
         } catch (e: Exception) {
-            RepoResult.Error(e.message ?: "Greška pri učitavanju timova")
+            RepoResult.Error(apiErrorMessage(e, "Greška pri učitavanju timova."))
         }
     }
 
     suspend fun getTeamProgress(): List<TeamProgress> {
-        val teams = try {
-            RetrofitClient.api.getTeams()
-        } catch (_: Exception) {
-            emptyList()
-        }
         val all = stickers.first()
-        return teams.map { team ->
-            val teamStickers = all.filter { it.team == team.reprezentacija }
+        return all.map { it.team }.distinct().sorted().map { teamName ->
+            val teamStickers = all.filter { it.team == teamName }
             TeamProgress(
-                code = team.code(),
-                name = team.reprezentacija,
-                crestUrl = team.crestUrl(),
+                code = teamCodeFromName(teamName),
+                name = teamName,
+                crestUrl = resolveCrestUrl(teamName, _crestUrls.value),
                 collected = teamStickers.count { it.owned },
                 total = teamStickers.size
             )
@@ -162,6 +207,29 @@ class StickerRepository(
         else dao.addWish(WishlistEntity(stickerId))
     }
 
+    /** Preuzima grbove i sličice u lokalni keš. Pri startu samo skupljene; nakon synca cijeli katalog. */
+    suspend fun prefetchCachedImages(includeFullCatalog: Boolean = false) {
+        val catalog = dao.observeCatalog().first()
+        if (catalog.isEmpty()) return
+        val ownedIds = dao.observeOwned().first().map { it.stickerId }.toSet()
+        val owned = catalog.filter { ownedIds.contains(it.id) }
+            .map { it.id to it.imageUrl }
+        ImageCache.prefetchStickers(appContext, owned)
+        if (includeFullCatalog) {
+            val rest = catalog.filterNot { ownedIds.contains(it.id) }
+                .map { it.id to it.imageUrl }
+            ImageCache.prefetchStickers(appContext, rest)
+        }
+        ImageCache.prefetchCrests(appContext, _crestUrls.value.values)
+    }
+
+    private fun apiErrorMessage(e: Exception, fallback: String): String {
+        if (e is HttpException && e.code() == 429) {
+            return "API limit iscrpljen (100 poziva/sat). $fallback"
+        }
+        return e.message?.takeIf { it.isNotBlank() } ?: fallback
+    }
+
     private fun PlayerDto.toEntity() = StickerEntity(
         id = id,
         name = fullName(),
@@ -169,7 +237,7 @@ class StickerRepository(
         team = reprezentacija,
         position = pozicijaLabel(pozicija),
         rarity = rarityLabel(),
-        imageUrl = imageUrl(),
+        imageUrl = imageUrl().ifBlank { ApiConfig.stickerImageUrl(id) },
         isGolden = zlatna == true
     )
 
@@ -194,7 +262,7 @@ class StickerRepository(
         team = team,
         position = position,
         rarity = rarity,
-        imageUrl = imageUrl,
+        imageUrl = imageUrl.ifBlank { ApiConfig.stickerImageUrl(id) },
         isGolden = isGolden,
         owned = owned,
         ownedCount = ownedCount,
@@ -202,5 +270,14 @@ class StickerRepository(
         isFavorite = isFavorite,
         isWished = isWished
     )
-}
 
+    companion object {
+        fun defaultCrestMap(): Map<String, String> {
+            val codes = listOf(
+                "ARG", "AUT", "BEL", "BIH", "BRA", "EGY", "ENG", "FRA",
+                "CRO", "MAR", "NED", "GER", "NOR", "POR", "TUR"
+            )
+            return codes.associateWith { ApiConfig.crestImageUrl(it) }
+        }
+    }
+}

@@ -11,6 +11,7 @@ import com.nejracoric.digitalnialbum.data.model.Sticker
 import com.nejracoric.digitalnialbum.data.preferences.UserPreferences
 import com.nejracoric.digitalnialbum.data.repository.RepoResult
 import com.nejracoric.digitalnialbum.data.repository.StickerRepository
+import com.nejracoric.digitalnialbum.util.raritySortKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,19 +28,20 @@ data class AlbumUiState(
     val isOnline: Boolean = true,
     val error: String? = null,
     val searchQuery: String = "",
-    val sortOption: SortOption = SortOption.BROJ,
+    val sortOption: SortOption = SortOption.RIJETKOST,
     val filterOwned: FilterOwned = FilterOwned.SVE,
     val selectedTeam: String = "Sve",
     val layout: ListLayout = ListLayout.MREZA,
     val teams: List<String> = listOf("Sve"),
     val collected: Int = 0,
-    val total: Int = 0
+    val total: Int = 0,
+    val crestUrls: Map<String, String> = emptyMap()
 ) {
     val percent: Int get() = if (total == 0) 0 else (collected * 100) / total
 }
 
 private data class AlbumFilters(
-    val sort: SortOption = SortOption.BROJ,
+    val sort: SortOption = SortOption.RIJETKOST,
     val filter: FilterOwned = FilterOwned.SVE,
     val team: String = "Sve",
     val loading: Boolean = true,
@@ -67,9 +69,10 @@ class AlbumViewModel(
         ) { all, online, owned, total, layout ->
             listOf(all, online, owned, total, layout)
         },
+        repository.crestUrls,
         searchQuery,
         filters
-    ) { partial, query, f ->
+    ) { partial, crests, query, f ->
         @Suppress("UNCHECKED_CAST")
         val all = partial[0] as List<Sticker>
         val online = partial[1] as Boolean
@@ -91,15 +94,16 @@ class AlbumViewModel(
                     FilterOwned.SVE -> true
                     FilterOwned.SKUPLJENE -> s.owned
                     FilterOwned.NEDOSTAJU -> !s.owned
+                    FilterOwned.DUPLIKATI -> s.ownedCount > 1
                 }
                 q && teamOk && ownedOk
             }
             .let { list ->
                 when (f.sort) {
                     SortOption.BROJ -> list.sortedBy { it.number.toIntOrNull() ?: 0 }
-                    SortOption.NAZIV -> list.sortedBy { it.name }
+                    SortOption.NAZIV -> list.sortedBy { it.name.lowercase() }
                     SortOption.DATUM -> list.sortedByDescending { it.obtainedAt ?: 0L }
-                    SortOption.RIJETKOST -> list.sortedBy { it.rarity }
+                    SortOption.RIJETKOST -> list.sortedBy { it.raritySortKey() }
                 }
             }
         AlbumUiState(
@@ -116,7 +120,8 @@ class AlbumViewModel(
             layout = layout,
             teams = teams,
             collected = owned,
-            total = total
+            total = total,
+            crestUrls = crests
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AlbumUiState())
 
@@ -156,7 +161,8 @@ class AlbumViewModel(
                     error = null
                 )
             }
-            when (val result = repository.refreshFromNetwork()) {
+            val forceNetwork = !initial
+            when (val result = repository.refreshFromNetwork(force = forceNetwork)) {
                 is RepoResult.Success -> filters.update { it.copy(error = null) }
                 is RepoResult.Error -> filters.update { it.copy(error = result.message) }
             }

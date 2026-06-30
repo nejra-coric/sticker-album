@@ -30,4 +30,4 @@ enum class ListLayout { LISTA, MREZA }
 
 enum class SortOption { BROJ, NAZIV, DATUM, RIJETKOST }
 
-enum class FilterOwned { SVE, SKUPLJENE, NEDOSTAJU }
+enum class FilterOwned { SVE, SKUPLJENE, NEDOSTAJU, DUPLIKATI }

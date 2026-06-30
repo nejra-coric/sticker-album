@@ -15,11 +15,15 @@ data class PlayerDto(
 ) {
     fun fullName() = "$ime $prezime"
 
-    fun imageUrl() = ApiConfig.imageUrl(slicica_lokacija)
+    fun imageUrl() = when {
+        slicica_lokacija.isNotBlank() -> ApiConfig.imageUrl(slicica_lokacija)
+        else -> ApiConfig.stickerImageUrl(id)
+    }
 
-    fun rarityLabel() = when (tip_slicice) {
+    fun rarityLabel() = when (tip_slicice?.lowercase()) {
         "legendarna" -> "Legendarna"
         "rijedka" -> "Rijetka"
+        "zlatna" -> "Zlatna"
         else -> if (zlatna == true) "Zlatna" else "Obična"
     }
 }

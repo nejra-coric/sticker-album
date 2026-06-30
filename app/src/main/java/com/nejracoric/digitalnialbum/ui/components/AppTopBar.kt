@@ -12,7 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import com.nejracoric.digitalnialbum.ui.theme.FifaNavyLight
+import com.nejracoric.digitalnialbum.ui.theme.GoldAccent
+import com.nejracoric.digitalnialbum.ui.theme.NeonCyan
+import com.nejracoric.digitalnialbum.ui.theme.TextWhite
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,14 +37,14 @@ fun AppTopBar(
         actions = {
             if (actionIcon != null && onAction != null) {
                 IconButton(onClick = onAction) {
-                    Icon(actionIcon, contentDescription = null, tint = Color(0xFFFFD700))
+                    Icon(actionIcon, contentDescription = null, tint = GoldAccent)
                 }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = FifaNavyLight,
-            titleContentColor = Color.White,
-            navigationIconContentColor = Color.White
+            containerColor = Color(0x3300E5FF),
+            titleContentColor = TextWhite,
+            navigationIconContentColor = NeonCyan
         )
     )
 }

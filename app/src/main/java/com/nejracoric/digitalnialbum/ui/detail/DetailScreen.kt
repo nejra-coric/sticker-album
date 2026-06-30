@@ -1,50 +1,78 @@
 package com.nejracoric.digitalnialbum.ui.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.nejracoric.digitalnialbum.ui.components.AppTopBar
-import com.nejracoric.digitalnialbum.ui.components.FifaBackground
-import com.nejracoric.digitalnialbum.ui.components.StickerImageLarge
-import com.nejracoric.digitalnialbum.ui.theme.FifaGold
-import com.nejracoric.digitalnialbum.ui.theme.FifaGray
-import com.nejracoric.digitalnialbum.ui.theme.FifaGreen
-import com.nejracoric.digitalnialbum.ui.theme.FifaNavy
-import com.nejracoric.digitalnialbum.ui.theme.FifaNavyCard
+import androidx.compose.ui.unit.sp
+import com.nejracoric.digitalnialbum.data.model.Sticker
+import com.nejracoric.digitalnialbum.ui.components.CrestImage
+import com.nejracoric.digitalnialbum.ui.components.GlassBackground
+import com.nejracoric.digitalnialbum.ui.components.GlassCard
+import com.nejracoric.digitalnialbum.ui.components.GoldShimmerOverlay
+import com.nejracoric.digitalnialbum.ui.components.HolographicOverlay
+import com.nejracoric.digitalnialbum.ui.components.StickerImage
+import com.nejracoric.digitalnialbum.ui.theme.DarkBlueMid
+import com.nejracoric.digitalnialbum.ui.theme.GlassBorder
+import com.nejracoric.digitalnialbum.ui.theme.GoldAccent
+import com.nejracoric.digitalnialbum.ui.theme.NeonCyan
+import com.nejracoric.digitalnialbum.ui.theme.TextGray
+import com.nejracoric.digitalnialbum.ui.theme.TextWhite
+import com.nejracoric.digitalnialbum.util.RarityTier
 import com.nejracoric.digitalnialbum.util.ShareUtil
+import com.nejracoric.digitalnialbum.util.displayRating
+import com.nejracoric.digitalnialbum.util.effectiveImageUrl
+import com.nejracoric.digitalnialbum.util.rarityLabel
+import com.nejracoric.digitalnialbum.util.rarityTier
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
+private val HeroShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 20.dp, bottomEnd = 20.dp)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
     viewModel: DetailViewModel,
@@ -54,123 +82,206 @@ fun DetailScreen(
     val context = LocalContext.current
     val sticker = state.sticker
 
-    FifaBackground {
+    GlassBackground {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                AppTopBar(
-                    title = sticker?.name ?: "Detalj",
-                    showBack = true,
-                    onBack = onBack,
-                    actionIcon = if (sticker?.isFavorite == true) Icons.Default.Favorite
-                    else Icons.Default.FavoriteBorder,
-                    onAction = { viewModel.toggleFavorite() }
+                TopAppBar(
+                    title = {},
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null,
+                                tint = TextWhite
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        navigationIconContentColor = TextWhite
+                    )
                 )
+            },
+            bottomBar = {
+                if (sticker != null) {
+                    DetailActionBar(
+                        isFavorite = sticker.isFavorite,
+                        isWished = sticker.isWished,
+                        onShare = { ShareUtil.shareSticker(context, sticker) },
+                        onFavorite = { viewModel.toggleFavorite() },
+                        onWishlist = { viewModel.toggleWishlist() }
+                    )
+                }
             }
         ) { padding ->
-            if (state.loading) {
-                Column(
+            when {
+                state.loading -> Box(
                     Modifier.fillMaxSize().padding(padding),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(Modifier.padding(32.dp), color = FifaGreen)
+                    CircularProgressIndicator(color = NeonCyan)
                 }
-            } else if (sticker == null) {
-                Text(
+                sticker == null -> Text(
                     state.message ?: "Greška",
-                    modifier = Modifier.padding(padding).padding(16.dp)
+                    modifier = Modifier.padding(padding).padding(16.dp),
+                    color = TextWhite
                 )
-            } else {
-                Column(
+                else -> Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
                         .verticalScroll(rememberScrollState())
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp)
                 ) {
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = FifaNavyCard),
-                        elevation = CardDefaults.cardElevation(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        StickerImageLarge(
-                            url = sticker.imageUrl,
-                            name = sticker.name,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(320.dp),
-                            isGolden = sticker.isGolden
-                        )
-                    }
-                    Text(
-                        sticker.name,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 20.dp)
+                    DetailHeroCard(
+                        sticker = sticker,
+                        crestUrl = state.crestUrl
                     )
-                    if (sticker.rarity.contains("Legend", true) || sticker.isGolden) {
-                        Text(
-                            "LEGENDARY",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = FifaGold,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                    Row(
+                    GlassCard(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp)
-                            .background(FifaNavyCard, RoundedCornerShape(12.dp))
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                            .padding(top = 20.dp),
+                        corner = 18.dp
                     ) {
-                        StatCell("Tim", sticker.team)
-                        StatCell("Dres", "#${sticker.number}")
-                        StatCell("Poz.", sticker.position.take(6))
+                        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                            DetailInfoRow(
+                                label = "Reprezentacija",
+                                value = sticker.team.uppercase(),
+                                trailing = {
+                                    CrestImage(
+                                        url = state.crestUrl,
+                                        contentDescription = sticker.team,
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(RoundedCornerShape(4.dp)),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
+                            )
+                            DetailDivider()
+                            DetailInfoRow("Pozicija", sticker.position)
+                            DetailDivider()
+                            DetailInfoRow(
+                                label = "Datum dobijanja",
+                                value = sticker.obtainedAt?.let { formatDate(it) } ?: "—"
+                            )
+                            DetailDivider()
+                            DetailInfoRow("Rijetkost", sticker.rarityLabel())
+                            DetailDivider()
+                            DetailInfoRow("Broj sličice", sticker.number.padStart(3, '0'))
+                            DetailDivider()
+                            DetailInfoRow(
+                                label = "Status",
+                                value = when {
+                                    sticker.ownedCount > 1 -> "Skupljeno (x${sticker.ownedCount})"
+                                    sticker.owned -> "Skupljeno"
+                                    else -> "Nedostaje"
+                                }
+                            )
+                        }
                     }
-                    Text(
-                        when {
-                            !sticker.owned -> "Nedostaje u albumu"
-                            sticker.ownedCount > 1 -> "Duplikat x${sticker.ownedCount}"
-                            else -> "U tvojoj kolekciji"
-                        },
-                        color = if (sticker.owned) FifaGreen else FifaGray,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailHeroCard(
+    sticker: Sticker,
+    crestUrl: String?
+) {
+    val tier = sticker.rarityTier()
+    val golden = tier == RarityTier.LEGEND || tier == RarityTier.GOLD
+    val borderBrush = if (golden) {
+        Brush.linearGradient(listOf(GoldAccent, Color(0xFFFFA500), GoldAccent))
+    } else {
+        Brush.linearGradient(listOf(NeonCyan.copy(0.7f), GlassBorder, NeonCyan.copy(0.4f)))
+    }
+
+    Box(Modifier.fillMaxWidth()) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(HeroShape)
+                .border(2.dp, borderBrush, HeroShape)
+                .background(detailCardBackground(tier))
+        ) {
+            Column {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(380.dp)
+                ) {
+                    StickerImage(
+                        url = sticker.effectiveImageUrl(),
+                        name = sticker.name,
+                        stickerId = sticker.id,
+                        modifier = Modifier.fillMaxSize(),
+                        owned = sticker.owned,
+                        isGolden = golden,
+                        contentScale = ContentScale.Fit
                     )
-                    Button(
-                        onClick = { viewModel.toggleWishlist() },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = FifaNavyCard,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Icon(
-                            if (sticker.isWished) Icons.Default.Star else Icons.Default.StarBorder,
-                            contentDescription = null,
-                            tint = FifaGold
+                    when (tier) {
+                        RarityTier.LEGEND -> HolographicOverlay(Modifier.fillMaxSize())
+                        RarityTier.GOLD -> GoldShimmerOverlay(Modifier.fillMaxSize())
+                        RarityTier.COMMON -> Unit
+                    }
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            "${sticker.displayRating()}",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (golden) GoldAccent else NeonCyan
                         )
                         Text(
-                            if (sticker.isWished) "Na listi želja" else "Dodaj na listu želja",
-                            modifier = Modifier.padding(start = 8.dp)
+                            sticker.rarityLabel(),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = if (golden) GoldAccent else TextGray,
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                    Button(
-                        onClick = { ShareUtil.shareSticker(context, sticker) },
-                        modifier = Modifier
+                    Box(
+                        Modifier
+                            .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .padding(top = 10.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = FifaGreen,
-                            contentColor = FifaNavy
-                        )
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Transparent, Color.Black.copy(0.85f))
+                                )
+                            )
+                            .padding(horizontal = 16.dp, vertical = 14.dp)
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = null)
-                        Text("Podijeli", modifier = Modifier.padding(start = 8.dp), fontWeight = FontWeight.Bold)
+                        Column {
+                            Text(
+                                sticker.name.uppercase(),
+                                color = TextWhite,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 6.dp)
+                            ) {
+                                CrestImage(
+                                    url = crestUrl,
+                                    contentDescription = sticker.team,
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    contentScale = ContentScale.Fit
+                                )
+                                Text(
+                                    sticker.team.uppercase(),
+                                    color = TextWhite,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -179,9 +290,135 @@ fun DetailScreen(
 }
 
 @Composable
-private fun StatCell(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = FifaGray)
-        Text(value, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+private fun DetailActionBar(
+    isFavorite: Boolean,
+    isWished: Boolean,
+    onShare: () -> Unit,
+    onFavorite: () -> Unit,
+    onWishlist: () -> Unit
+) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(50))
+                .background(Color(0xCC0A0E21))
+                .border(1.dp, GoldAccent.copy(0.5f), RoundedCornerShape(50))
+                .padding(horizontal = 24.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onWishlist)
+            ) {
+                Icon(
+                    if (isWished) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                    null,
+                    tint = if (isWished) NeonCyan else TextWhite,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    "Želje",
+                    color = if (isWished) NeonCyan else TextWhite,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(start = 6.dp)
+                )
+            }
+            Box(
+                Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(listOf(GoldAccent, Color(0xFFFFA500)))
+                    )
+                    .clickable(onClick = onShare),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Share, null, tint = Color.Black, modifier = Modifier.size(22.dp))
+                    Text(
+                        "Podijeli",
+                        color = Color.Black,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onFavorite)
+            ) {
+                Text(
+                    "Favorit",
+                    color = if (isFavorite) GoldAccent else TextWhite,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(end = 6.dp)
+                )
+                Icon(
+                    if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    null,
+                    tint = if (isFavorite) GoldAccent else TextWhite,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
     }
 }
+
+@Composable
+private fun DetailInfoRow(
+    label: String,
+    value: String,
+    trailing: @Composable (() -> Unit)? = null
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, color = TextGray, style = MaterialTheme.typography.bodyMedium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                value,
+                color = TextWhite,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(end = if (trailing != null) 10.dp else 0.dp)
+            )
+            trailing?.invoke()
+        }
+    }
+}
+
+@Composable
+private fun DetailDivider() {
+    HorizontalDivider(color = Color(0x2200E5FF), thickness = 1.dp)
+}
+
+@Composable
+private fun detailCardBackground(tier: RarityTier): Brush = when (tier) {
+    RarityTier.LEGEND -> Brush.linearGradient(
+        listOf(Color(0xFF1A1030), Color(0xFF0D2840), Color(0xFF281028))
+    )
+    RarityTier.GOLD -> Brush.linearGradient(
+        listOf(Color(0xFF4A380A), Color(0xFF3D2E08), Color(0xFF2A2208))
+    )
+    RarityTier.COMMON -> Brush.linearGradient(
+        listOf(DarkBlueMid, Color(0xFF141C35))
+    )
+}
+
+private fun formatDate(ts: Long): String =
+    SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(ts))

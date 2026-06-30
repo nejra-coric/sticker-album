@@ -29,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import com.nejracoric.digitalnialbum.ui.components.CrestImage
 import com.nejracoric.digitalnialbum.data.model.TeamProgress
 import com.nejracoric.digitalnialbum.ui.components.FifaBackground
 import com.nejracoric.digitalnialbum.ui.theme.FifaGold
@@ -98,8 +98,8 @@ private fun TeamCard(team: TeamProgress, onClick: () -> Unit) {
             Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = team.crestUrl,
+            CrestImage(
+                url = team.crestUrl,
                 contentDescription = team.name,
                 modifier = Modifier
                     .size(52.dp)

@@ -5,6 +5,11 @@ object ApiConfig {
 
     fun imageUrl(path: String): String {
         if (path.startsWith("http")) return path
-        return BASE_URL.trimEnd('/') + path
+        val normalized = if (path.startsWith("/")) path else "/$path"
+        return BASE_URL.trimEnd('/') + normalized
     }
+
+    fun stickerImageUrl(playerId: Int): String = imageUrl("/api/slicica/$playerId")
+
+    fun crestImageUrl(teamCode: String): String = imageUrl("/api/grb/$teamCode")
 }

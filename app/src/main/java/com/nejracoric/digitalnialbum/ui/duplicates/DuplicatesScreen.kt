@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Scaffold
@@ -32,6 +34,7 @@ import com.nejracoric.digitalnialbum.ui.components.StickerImage
 import com.nejracoric.digitalnialbum.ui.theme.FifaGold
 import com.nejracoric.digitalnialbum.ui.theme.FifaGray
 import com.nejracoric.digitalnialbum.ui.theme.FifaNavyCard
+import com.nejracoric.digitalnialbum.util.ShareUtil
 
 @Composable
 fun DuplicatesScreen(
@@ -40,11 +43,24 @@ fun DuplicatesScreen(
 ) {
     val app = LocalContext.current.applicationContext as DigitalAlbumApp
     val list by app.repository.duplicates.collectAsState(initial = emptyList())
+    val context = LocalContext.current
 
     FifaBackground {
         Scaffold(
             containerColor = Color.Transparent,
-            topBar = { AppTopBar(title = "Duplikati", showBack = true, onBack = onBack) }
+            topBar = {
+                AppTopBar(
+                    title = "Duplikati",
+                    showBack = true,
+                    onBack = onBack,
+                    actionIcon = if (list.isNotEmpty()) Icons.Default.Share else null,
+                    onAction = if (list.isNotEmpty()) {
+                        { ShareUtil.shareDuplicatesList(context, list) }
+                    } else {
+                        null
+                    }
+                )
+            }
         ) { padding ->
             if (list.isEmpty()) {
                 Box(
@@ -71,6 +87,7 @@ fun DuplicatesScreen(
                                 StickerImage(
                                     url = sticker.imageUrl,
                                     name = sticker.name,
+                                    stickerId = sticker.id,
                                     size = 56.dp,
                                     isGolden = sticker.isGolden
                                 )
