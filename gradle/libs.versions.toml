@@ -1,7 +1,7 @@
 [versions]
 agp = "8.13.2"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.28"
+kotlin = "2.2.0"
+ksp = "2.2.0-2.0.2"
 coreKtx = "1.10.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -11,13 +11,14 @@ activityCompose = "1.9.3"
 composeBom = "2024.09.00"
 navigationCompose = "2.8.4"
 lifecycleViewmodelCompose = "2.8.7"
-room = "2.6.1"
+room = "2.7.2"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
 coil = "2.7.0"
 datastore = "1.1.1"
 splashscreen = "1.0.1"
 materialIcons = "1.7.5"
+swipingcards = "0.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,6 +47,7 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
+swipingcards = { group = "io.github.makzimi", name = "swipingcards", version.ref = "swipingcards" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

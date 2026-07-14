@@ -47,23 +47,28 @@ fun PlayerGlassCard(
     sticker: Sticker,
     onClick: () -> Unit,
     crestUrl: String? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fillHeight: Boolean = false
 ) {
     val tier = sticker.rarityTier()
     val golden = tier == RarityTier.LEGEND || tier == RarityTier.GOLD
 
     GlassCard(
-        modifier = modifier.fillMaxWidth(),
+        modifier = if (fillHeight) modifier.fillMaxSize() else modifier.fillMaxWidth(),
         corner = 22.dp,
         golden = golden,
         onClick = onClick
     ) {
-        Column(Modifier.padding(8.dp)) {
+        Column(
+            Modifier
+                .then(if (fillHeight) Modifier.fillMaxSize() else Modifier)
+                .padding(8.dp)
+        ) {
             Box(Modifier.fillMaxWidth()) {
                 Column {
                     Text(
                         "${sticker.displayRating()}",
-                        fontSize = 20.sp,
+                        fontSize = if (fillHeight) 28.sp else 20.sp,
                         fontWeight = FontWeight.Black,
                         color = when (tier) {
                             RarityTier.LEGEND, RarityTier.GOLD -> GoldAccent
@@ -84,7 +89,7 @@ fun PlayerGlassCard(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .size(20.dp)
+                            .size(if (fillHeight) 24.dp else 20.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF2ECC71)),
                         contentAlignment = Alignment.Center
@@ -93,17 +98,25 @@ fun PlayerGlassCard(
                             Icons.Default.Check,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(if (fillHeight) 15.dp else 13.dp)
                         )
                     }
                 }
             }
 
-            Box(
+            val imageMod = if (fillHeight) {
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(vertical = 8.dp)
+            } else {
                 Modifier
                     .fillMaxWidth()
                     .height(150.dp)
                     .padding(vertical = 6.dp)
+            }
+            Box(
+                imageMod
                     .clip(ImageShape)
                     .background(cardBackground(tier))
             ) {
@@ -128,13 +141,17 @@ fun PlayerGlassCard(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color.Black.copy(alpha = 0.45f))
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .padding(horizontal = 8.dp, vertical = if (fillHeight) 10.dp else 6.dp)
             ) {
                 Column {
                     Text(
                         sticker.name.uppercase(),
                         color = TextWhite,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = if (fillHeight) {
+                            MaterialTheme.typography.titleSmall
+                        } else {
+                            MaterialTheme.typography.labelMedium
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontWeight = FontWeight.Bold
@@ -147,7 +164,7 @@ fun PlayerGlassCard(
                             url = crestUrl,
                             contentDescription = sticker.team,
                             modifier = Modifier
-                                .size(18.dp)
+                                .size(if (fillHeight) 22.dp else 18.dp)
                                 .clip(RoundedCornerShape(2.dp)),
                             contentScale = ContentScale.Fit
                         )
