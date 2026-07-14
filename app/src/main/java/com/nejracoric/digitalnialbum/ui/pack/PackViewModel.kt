@@ -11,9 +11,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class PackPhase { FOIL, CARDS }
+
 data class PackUiState(
+    val phase: PackPhase = PackPhase.FOIL,
     val lastPack: List<Sticker> = emptyList(),
     val opening: Boolean = false,
+    val requestFreshPack: Boolean = false,
     val error: String? = null,
     val isOnline: Boolean = true,
     val crestUrls: Map<String, String> = emptyMap()
@@ -40,25 +44,77 @@ class PackViewModel(
         viewModelScope.launch {
             val last = repository.getLastOpenedPack()
             if (last.isNotEmpty()) {
-                _state.update { it.copy(lastPack = last) }
+                _state.update {
+                    it.copy(
+                        lastPack = last,
+                        phase = PackPhase.CARDS,
+                        requestFreshPack = false
+                    )
+                }
             }
         }
     }
 
-    fun onShakeDetected() {
-        if (_state.value.opening || !_state.value.isOnline) return
-        openPack()
+    /** Vrati se na foil; sljedeći shake/tap vuče NOVI paketić s API-ja. */
+    fun prepareNewPack() {
+        if (_state.value.opening) return
+        _state.update {
+            it.copy(
+                phase = PackPhase.FOIL,
+                requestFreshPack = true,
+                error = null
+            )
+        }
     }
 
-    fun openPack() {
+    fun onShakeDetected() {
+        if (_state.value.phase != PackPhase.FOIL) return
+        if (_state.value.opening) return
+        revealOrOpenPack()
+    }
+
+    /**
+     * Na foilu:
+     * - ako je korisnik rekao "Otvori novi" → API
+     * - inače → ista simulacija / zadnji paketić iz Room-a
+     * - ako nema memorije → API (prvi put)
+     */
+    fun revealOrOpenPack() {
+        if (_state.value.opening) return
+        val wantsFresh = _state.value.requestFreshPack
         viewModelScope.launch {
-            _state.update { it.copy(opening = true, error = null) }
+            if (!wantsFresh) {
+                val last = repository.getLastOpenedPack()
+                if (last.isNotEmpty()) {
+                    _state.update {
+                        it.copy(
+                            lastPack = last,
+                            phase = PackPhase.CARDS,
+                            opening = false,
+                            error = null,
+                            requestFreshPack = false
+                        )
+                    }
+                    return@launch
+                }
+            }
+
+            if (!_state.value.isOnline) {
+                _state.update {
+                    it.copy(error = "Potreban internet za novi paketić.")
+                }
+                return@launch
+            }
+
+            _state.update { it.copy(opening = true, error = null, phase = PackPhase.FOIL) }
             when (val result = repository.openPack()) {
                 is RepoResult.Success -> {
                     _state.update {
                         it.copy(
                             lastPack = result.data,
+                            phase = PackPhase.CARDS,
                             opening = false,
+                            requestFreshPack = false,
                             error = null
                         )
                     }
@@ -67,6 +123,7 @@ class PackViewModel(
                     _state.update {
                         it.copy(
                             opening = false,
+                            phase = PackPhase.FOIL,
                             error = result.message
                         )
                     }

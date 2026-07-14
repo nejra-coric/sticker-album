@@ -31,6 +31,8 @@ import com.nejracoric.digitalnialbum.ui.theme.MagentaAccent
 import com.nejracoric.digitalnialbum.ui.theme.NeonCyan
 import com.nejracoric.digitalnialbum.ui.theme.TextGray
 import com.nejracoric.digitalnialbum.ui.theme.TextWhite
+import com.nejracoric.digitalnialbum.util.RarityTier
+import com.nejracoric.digitalnialbum.util.rarityTier
 
 data class ChartSlice(val label: String, val value: Int, val color: Color)
 
@@ -225,18 +227,11 @@ fun collectionDuplicateExtras(stickers: List<Sticker>): Int =
 
 fun rarityBars(stickers: List<Sticker>): List<ChartSlice> {
     val owned = stickers.filter { it.owned }
-    val groups = owned.groupBy { sticker ->
-        when {
-            sticker.rarity.contains("legend", true) -> "LEGEND"
-            sticker.rarity.contains("zlat", true) || sticker.isGolden -> "GOLD"
-            sticker.rarity.contains("rijed", true) -> "RARE"
-            else -> "COMMON"
-        }
-    }
+    val groups = owned.groupBy { it.rarityTier() }
     return listOf(
-        ChartSlice("COMMON", groups["COMMON"]?.size ?: 0, ChartTeal),
-        ChartSlice("RARE", groups["RARE"]?.size ?: 0, ChartGold),
-        ChartSlice("GOLD", groups["GOLD"]?.size ?: 0, ChartGold),
-        ChartSlice("LEGEND", groups["LEGEND"]?.size ?: 0, ChartPurple)
+        ChartSlice("COMMON", groups[RarityTier.COMMON]?.size ?: 0, ChartTeal),
+        ChartSlice("RARE", groups[RarityTier.RARE]?.size ?: 0, MagentaAccent),
+        ChartSlice("GOLD", groups[RarityTier.GOLD]?.size ?: 0, ChartGold),
+        ChartSlice("LEGEND", groups[RarityTier.LEGEND]?.size ?: 0, ChartPurple)
     )
 }

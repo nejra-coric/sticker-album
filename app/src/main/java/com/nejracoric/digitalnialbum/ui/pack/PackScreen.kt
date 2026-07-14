@@ -64,7 +64,7 @@ fun PackScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-    val hasPack = state.lastPack.isNotEmpty()
+    val showCards = state.phase == PackPhase.CARDS && state.lastPack.isNotEmpty()
     val scale by animateFloatAsState(
         if (state.opening) 1.06f else 1f,
         animationSpec = spring(),
@@ -76,11 +76,12 @@ fun PackScreen(
         label = "packShake"
     )
 
-    DisposableEffect(Unit) {
-        val sm = context.getSystemService(SensorManager::class.java)
+    DisposableEffect(viewModel) {
+        val sm = context.getSystemService(SensorManager::class.java) ?: return@DisposableEffect onDispose { }
         val sensor = sm.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER)
+            ?: return@DisposableEffect onDispose { }
         val detector = ShakeDetector { viewModel.onShakeDetected() }
-        sm.registerListener(detector, sensor, SensorManager.SENSOR_DELAY_UI)
+        sm.registerListener(detector, sensor, SensorManager.SENSOR_DELAY_GAME)
         onDispose { sm.unregisterListener(detector) }
     }
 
@@ -108,7 +109,7 @@ fun PackScreen(
             )
 
             AnimatedContent(
-                targetState = hasPack,
+                targetState = showCards,
                 transitionSpec = {
                     fadeIn(tween(400)) togetherWith fadeOut(tween(280))
                 },
@@ -116,8 +117,8 @@ fun PackScreen(
                     .weight(1f)
                     .fillMaxWidth(),
                 label = "packContent"
-            ) { showCards ->
-                if (showCards) {
+            ) { cardsVisible ->
+                if (cardsVisible) {
                     PackSwipeDeck(
                         cards = state.lastPack,
                         crestUrls = state.crestUrls,
@@ -133,8 +134,9 @@ fun PackScreen(
                                 .scale(scale)
                                 .rotate(shake)
                                 .clickable(
-                                    enabled = state.isOnline && !state.opening
-                                ) { viewModel.openPack() },
+                                    enabled = !state.opening &&
+                                        (state.isOnline || !state.requestFreshPack)
+                                ) { viewModel.revealOrOpenPack() },
                             contentScale = ContentScale.Fit
                         )
                         if (state.opening) {
@@ -147,8 +149,8 @@ fun PackScreen(
                 }
             }
 
-            if (!hasPack) {
-                ShakeHintRow()
+            if (!showCards) {
+                ShakeHintRow(opening = state.opening)
                 Spacer(Modifier.height(8.dp))
             }
 
@@ -169,7 +171,7 @@ fun PackScreen(
                 )
             }
 
-            if (hasPack) {
+            if (showCards) {
                 Text(
                     "Prevuci kartice ili tapni za detalj",
                     color = TextGray,
@@ -183,24 +185,22 @@ fun PackScreen(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .clickable(
-                            enabled = state.isOnline && !state.opening
-                        ) { viewModel.openPack() }
+                            enabled = !state.opening
+                        ) { viewModel.prepareNewPack() }
                         .padding(vertical = 8.dp)
                 )
-                if (state.opening) {
-                    CircularProgressIndicator(
-                        color = GoldAccent,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .padding(bottom = 8.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
             } else {
                 Text(
-                    "Tapni paketić ili protresi telefon",
-                    color = TextGray,
-                    style = MaterialTheme.typography.labelSmall,
+                    if (state.requestFreshPack) {
+                        "Novi paketić · SHAKE TO OPEN"
+                    } else {
+                        "Isti paketić iz sesije · SHAKE TO OPEN"
+                    },
+                    color = GoldAccent,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
             }
@@ -250,35 +250,49 @@ private fun PackSwipeDeck(
 }
 
 @Composable
-private fun ShakeHintRow() {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+private fun ShakeHintRow(opening: Boolean) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Icon(
-            Icons.Default.PhoneAndroid,
-            null,
-            tint = NeonCyan.copy(0.7f),
-            modifier = Modifier
-                .size(22.dp)
-                .rotate(-12f)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                Icons.Default.PhoneAndroid,
+                null,
+                tint = GoldAccent,
+                modifier = Modifier
+                    .size(26.dp)
+                    .rotate(-14f)
+            )
+            Text(
+                "SHAKE TO OPEN",
+                color = GoldAccent,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+            Icon(
+                Icons.Default.PhoneAndroid,
+                null,
+                tint = GoldAccent,
+                modifier = Modifier
+                    .size(26.dp)
+                    .rotate(14f)
+            )
+        }
         Text(
-            "Protresi telefon za otvaranje paketića",
+            if (opening) "Otvaranje paketića…" else "Protresi telefon da otvoriš paketić",
             color = NeonCyan,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 10.dp)
-        )
-        Icon(
-            Icons.Default.PhoneAndroid,
-            null,
-            tint = NeonCyan.copy(0.7f),
-            modifier = Modifier
-                .size(22.dp)
-                .rotate(12f)
+            modifier = Modifier.padding(top = 6.dp)
         )
     }
 }

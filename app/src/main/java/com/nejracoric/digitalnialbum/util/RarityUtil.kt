@@ -7,28 +7,83 @@ import com.nejracoric.digitalnialbum.data.remote.dto.TeamDto
 enum class RarityTier(val sortOrder: Int) {
     LEGEND(0),
     GOLD(1),
-    COMMON(2)
+    RARE(2),
+    COMMON(3)
 }
 
-fun Sticker.rarityTier(): RarityTier = when {
-    rarity.contains("legend", true) -> RarityTier.LEGEND
-    rarity.contains("rijed", true) || rarity.contains("zlat", true) || isGolden -> RarityTier.GOLD
-    else -> RarityTier.COMMON
+fun Sticker.rarityTier(): RarityTier = rarityTierFrom(rarity, isGolden)
+
+fun rarityTierFrom(rarity: String, isGolden: Boolean = false): RarityTier {
+    val r = rarity.lowercase()
+    return when {
+        "legend" in r -> RarityTier.LEGEND
+        "zlat" in r || "gold" in r || isGolden -> RarityTier.GOLD
+        "rijed" in r || "rare" in r -> RarityTier.RARE
+        else -> RarityTier.COMMON
+    }
 }
 
 fun Sticker.rarityLabel(): String = when (rarityTier()) {
     RarityTier.LEGEND -> "LEGEND"
     RarityTier.GOLD -> "GOLD"
+    RarityTier.RARE -> "RARE"
     RarityTier.COMMON -> "COMMON"
 }
 
 fun Sticker.displayRating(): Int = when (rarityTier()) {
     RarityTier.LEGEND -> 91
     RarityTier.GOLD -> 88
+    RarityTier.RARE -> 82
     RarityTier.COMMON -> 75
 }
 
 fun Sticker.raritySortKey(): Int = rarityTier().sortOrder
+
+fun rarityRank(rarity: String, isGolden: Boolean = false): Int = when (rarityTierFrom(rarity, isGolden)) {
+    RarityTier.LEGEND -> 3
+    RarityTier.GOLD -> 2
+    RarityTier.RARE -> 1
+    RarityTier.COMMON -> 0
+}
+
+/**
+ * Rijetkost po API šansi (vjerovatnoca) i tip_slicice.
+ * Katalog (/api/all-players) nema tip — koristi stabilan roll po id-u
+ * usklađen s tipičnim drop rateovima (većina COMMON, manje RARE/GOLD/LEGEND).
+ *
+ * API primjeri: vjerovatnoca=100 → obična, vjerovatnoca=20 → zlatna.
+ */
+fun rarityFromDrawChance(
+    playerId: Int,
+    tipSlicice: String? = null,
+    zlatna: Boolean? = null,
+    vjerovatnoca: Int? = null
+): String {
+    when (tipSlicice?.lowercase()) {
+        "legendarna", "legend" -> return "Legendarna"
+        "rijedka", "rare" -> return "Rijetka"
+        "zlatna", "gold" -> return "Zlatna"
+    }
+    if (zlatna == true) return "Zlatna"
+
+    vjerovatnoca?.let { chance ->
+        return when {
+            chance <= 5 -> "Legendarna"
+            chance <= 20 -> "Zlatna"
+            chance <= 50 -> "Rijetka"
+            else -> "Obična"
+        }
+    }
+
+    // Stabilna šansa za katalog (isti igrač → isti raritet)
+    val roll = ((playerId * 37) % 100).let { if (it < 0) it + 100 else it }
+    return when {
+        roll < 3 -> "Legendarna"   // ~3%
+        roll < 12 -> "Zlatna"      // ~9%
+        roll < 32 -> "Rijetka"     // ~20%
+        else -> "Obična"
+    }
+}
 
 fun Sticker.effectiveImageUrl(): String =
     imageUrl.ifBlank { ApiConfig.stickerImageUrl(id) }
@@ -59,9 +114,11 @@ private val TEAM_NAME_TO_CODE = mapOf(
     "portugal" to "POR",
     "por" to "POR",
     "holandija" to "NED",
+    "nizozemska" to "NED",
     "netherlands" to "NED",
     "ned" to "NED",
     "norveška" to "NOR",
+    "norveska" to "NOR",
     "norway" to "NOR",
     "nor" to "NOR",
     "belgija" to "BEL",

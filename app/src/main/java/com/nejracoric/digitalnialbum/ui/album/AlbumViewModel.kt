@@ -123,16 +123,9 @@ class AlbumViewModel(
             total = total,
             crestUrls = crests
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AlbumUiState())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, AlbumUiState())
 
     init {
-        viewModelScope.launch {
-            preferences.preferredTeam.collect { team ->
-                if (filters.value.team == "Sve" && team != "Sve") {
-                    filters.update { it.copy(team = team) }
-                }
-            }
-        }
         refresh(initial = true)
     }
 

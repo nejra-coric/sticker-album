@@ -15,8 +15,11 @@ import com.nejracoric.digitalnialbum.data.remote.dto.TeamDto
 import com.nejracoric.digitalnialbum.util.ImageCache
 import com.nejracoric.digitalnialbum.util.NetworkMonitor
 import com.nejracoric.digitalnialbum.util.buildCrestMap
+import com.nejracoric.digitalnialbum.util.rarityFromDrawChance
+import com.nejracoric.digitalnialbum.util.rarityRank
 import com.nejracoric.digitalnialbum.util.resolveCrestUrl
 import com.nejracoric.digitalnialbum.util.teamCodeFromName
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -90,6 +93,7 @@ class StickerRepository(
         ensureDefaultCrests()
 
         if (!force && cached > 0) {
+            applyChanceRaritiesWhereMissing()
             return RepoResult.Success(Unit)
         }
 
@@ -98,7 +102,8 @@ class StickerRepository(
             if (remote.isEmpty()) {
                 RepoResult.Error("API je vratio praznu listu.")
             } else {
-                dao.insertAll(remote.map { it.toEntity() })
+                upsertCatalogPreservingRarity(remote)
+                applyChanceRaritiesWhereMissing()
                 tryRefreshCrestsFromApi()
                 prefetchCachedImages(includeFullCatalog = true)
                 RepoResult.Success(Unit)
@@ -106,9 +111,27 @@ class StickerRepository(
         } catch (e: Exception) {
             when {
                 cached == 0 -> RepoResult.Error(apiErrorMessage(e, "Nema interneta i nema keširanih podataka."))
-                else -> RepoResult.Error(apiErrorMessage(e, "Prikaz keširanih podataka."))
+                else -> {
+                    applyChanceRaritiesWhereMissing()
+                    RepoResult.Error(apiErrorMessage(e, "Prikaz keširanih podataka."))
+                }
             }
         }
+    }
+
+    /** Za katalog bez tipa: dodijeli raritet po stabilnoj šansi (id), ne diraj već otkrivene GOLD/LEGEND. */
+    private suspend fun applyChanceRaritiesWhereMissing() {
+        val catalog = dao.observeCatalog().first()
+        if (catalog.isEmpty()) return
+        val updated = catalog.map { entity ->
+            if (rarityRank(entity.rarity, entity.isGolden) > 0) return@map entity
+            val label = rarityFromDrawChance(playerId = entity.id)
+            entity.copy(
+                rarity = label,
+                isGolden = label.contains("zlat", true) || label.contains("legend", true)
+            )
+        }
+        if (updated != catalog) dao.insertAll(updated)
     }
 
     private suspend fun tryRefreshCrestsFromApi() {
@@ -135,17 +158,20 @@ class StickerRepository(
 
     suspend fun openPack(): RepoResult<List<Sticker>> {
         return try {
-            val pack = RetrofitClient.api.getRandomPack(5)
+            val pack = RetrofitClient.api.getRandomPack(5).filter { it.isPlayerCard() }
             if (pack.isEmpty()) {
                 RepoResult.Error("Paketić je prazan.")
             } else {
                 val now = System.currentTimeMillis()
-                dao.insertAll(pack.map { it.toEntity() })
-                dao.insertOwnedAll(
-                    pack.map { OwnedStickerEntity(stickerId = it.id, obtainedAt = now) }
-                )
+                db.withTransaction {
+                    upsertCatalogPreservingRarity(pack, preferIncomingRarity = true)
+                    dao.insertOwnedAll(
+                        pack.map { OwnedStickerEntity(stickerId = it.id, obtainedAt = now) }
+                    )
+                }
                 val result = pack.map { dto ->
-                    dto.toEntity().toModel(
+                    val entity = dao.getById(dto.id) ?: dto.toEntity()
+                    entity.toModel(
                         owned = true,
                         ownedCount = dao.ownedCountFor(dto.id),
                         obtainedAt = now,
@@ -162,6 +188,32 @@ class StickerRepository(
         } catch (e: Exception) {
             RepoResult.Error(apiErrorMessage(e, "Nije moguće otvoriti paketić."))
         }
+    }
+
+    /**
+     * /api/all-players nema tip_slicice — zato čuvamo rijetkost otkrivenu iz paketića.
+     * Paketić šalje tip_slicice (obicna/zlatna/rijedka/legendarna).
+     */
+    private suspend fun upsertCatalogPreservingRarity(
+        remote: List<PlayerDto>,
+        preferIncomingRarity: Boolean = false
+    ) {
+        val existing = dao.observeCatalog().first().associateBy { it.id }
+        val merged = remote.map { dto ->
+            val incoming = dto.toEntity()
+            val old = existing[incoming.id] ?: return@map incoming
+            val incomingRank = rarityRank(incoming.rarity, incoming.isGolden)
+            val oldRank = rarityRank(old.rarity, old.isGolden)
+            when {
+                preferIncomingRarity && incomingRank >= oldRank -> incoming
+                oldRank > incomingRank -> incoming.copy(
+                    rarity = old.rarity,
+                    isGolden = old.isGolden || incoming.isGolden
+                )
+                else -> incoming
+            }
+        }
+        dao.insertAll(merged)
     }
 
     suspend fun getTeams(): RepoResult<List<TeamDto>> {
@@ -238,7 +290,7 @@ class StickerRepository(
         position = pozicijaLabel(pozicija),
         rarity = rarityLabel(),
         imageUrl = imageUrl().ifBlank { ApiConfig.stickerImageUrl(id) },
-        isGolden = zlatna == true
+        isGolden = isGoldenCard()
     )
 
     private fun pozicijaLabel(pozicija: String) = when (pozicija) {

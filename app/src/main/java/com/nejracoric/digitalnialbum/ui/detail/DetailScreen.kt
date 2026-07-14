@@ -57,6 +57,7 @@ import com.nejracoric.digitalnialbum.ui.components.StickerImage
 import com.nejracoric.digitalnialbum.ui.theme.DarkBlueMid
 import com.nejracoric.digitalnialbum.ui.theme.GlassBorder
 import com.nejracoric.digitalnialbum.ui.theme.GoldAccent
+import com.nejracoric.digitalnialbum.ui.theme.MagentaAccent
 import com.nejracoric.digitalnialbum.ui.theme.NeonCyan
 import com.nejracoric.digitalnialbum.ui.theme.TextGray
 import com.nejracoric.digitalnialbum.ui.theme.TextWhite
@@ -92,27 +93,42 @@ fun DetailScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = null,
+                                contentDescription = "Nazad",
                                 tint = TextWhite
                             )
                         }
                     },
+                    actions = {
+                        if (sticker != null) {
+                            IconButton(onClick = { viewModel.toggleWishlist() }) {
+                                Icon(
+                                    if (sticker.isWished) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                    contentDescription = "Sačuvano",
+                                    tint = if (sticker.isWished) NeonCyan else TextWhite
+                                )
+                            }
+                            IconButton(onClick = { ShareUtil.shareSticker(context, sticker) }) {
+                                Icon(
+                                    Icons.Default.Share,
+                                    contentDescription = "Podijeli",
+                                    tint = GoldAccent
+                                )
+                            }
+                            IconButton(onClick = { viewModel.toggleFavorite() }) {
+                                Icon(
+                                    if (sticker.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = "Favorit",
+                                    tint = if (sticker.isFavorite) GoldAccent else TextWhite
+                                )
+                            }
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-                        navigationIconContentColor = TextWhite
+                        navigationIconContentColor = TextWhite,
+                        actionIconContentColor = TextWhite
                     )
                 )
-            },
-            bottomBar = {
-                if (sticker != null) {
-                    DetailActionBar(
-                        isFavorite = sticker.isFavorite,
-                        isWished = sticker.isWished,
-                        onShare = { ShareUtil.shareSticker(context, sticker) },
-                        onFavorite = { viewModel.toggleFavorite() },
-                        onWishlist = { viewModel.toggleWishlist() }
-                    )
-                }
             }
         ) { padding ->
             when {
@@ -181,7 +197,7 @@ fun DetailScreen(
                             )
                         }
                     }
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(24.dp))
                 }
             }
         }
@@ -195,8 +211,15 @@ private fun DetailHeroCard(
 ) {
     val tier = sticker.rarityTier()
     val golden = tier == RarityTier.LEGEND || tier == RarityTier.GOLD
+    val accentColor = when (tier) {
+        RarityTier.LEGEND, RarityTier.GOLD -> GoldAccent
+        RarityTier.RARE -> MagentaAccent
+        RarityTier.COMMON -> NeonCyan
+    }
     val borderBrush = if (golden) {
         Brush.linearGradient(listOf(GoldAccent, Color(0xFFFFA500), GoldAccent))
+    } else if (tier == RarityTier.RARE) {
+        Brush.linearGradient(listOf(MagentaAccent.copy(0.8f), GlassBorder, MagentaAccent.copy(0.4f)))
     } else {
         Brush.linearGradient(listOf(NeonCyan.copy(0.7f), GlassBorder, NeonCyan.copy(0.4f)))
     }
@@ -227,19 +250,19 @@ private fun DetailHeroCard(
                     when (tier) {
                         RarityTier.LEGEND -> HolographicOverlay(Modifier.fillMaxSize())
                         RarityTier.GOLD -> GoldShimmerOverlay(Modifier.fillMaxSize())
-                        RarityTier.COMMON -> Unit
+                        RarityTier.RARE, RarityTier.COMMON -> Unit
                     }
                     Column(Modifier.padding(16.dp)) {
                         Text(
                             "${sticker.displayRating()}",
                             fontSize = 36.sp,
                             fontWeight = FontWeight.Black,
-                            color = if (golden) GoldAccent else NeonCyan
+                            color = accentColor
                         )
                         Text(
                             sticker.rarityLabel(),
                             style = MaterialTheme.typography.titleSmall,
-                            color = if (golden) GoldAccent else TextGray,
+                            color = accentColor,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -290,92 +313,6 @@ private fun DetailHeroCard(
 }
 
 @Composable
-private fun DetailActionBar(
-    isFavorite: Boolean,
-    isWished: Boolean,
-    onShare: () -> Unit,
-    onFavorite: () -> Unit,
-    onWishlist: () -> Unit
-) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(50))
-                .background(Color(0xCC0A0E21))
-                .border(1.dp, GoldAccent.copy(0.5f), RoundedCornerShape(50))
-                .padding(horizontal = 24.dp, vertical = 18.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(onClick = onWishlist)
-            ) {
-                Icon(
-                    if (isWished) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                    null,
-                    tint = if (isWished) NeonCyan else TextWhite,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    "Želje",
-                    color = if (isWished) NeonCyan else TextWhite,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(start = 6.dp)
-                )
-            }
-            Box(
-                Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(listOf(GoldAccent, Color(0xFFFFA500)))
-                    )
-                    .clickable(onClick = onShare),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Share, null, tint = Color.Black, modifier = Modifier.size(22.dp))
-                    Text(
-                        "Podijeli",
-                        color = Color.Black,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(onClick = onFavorite)
-            ) {
-                Text(
-                    "Favorit",
-                    color = if (isFavorite) GoldAccent else TextWhite,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(end = 6.dp)
-                )
-                Icon(
-                    if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    null,
-                    tint = if (isFavorite) GoldAccent else TextWhite,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun DetailInfoRow(
     label: String,
     value: String,
@@ -414,6 +351,9 @@ private fun detailCardBackground(tier: RarityTier): Brush = when (tier) {
     )
     RarityTier.GOLD -> Brush.linearGradient(
         listOf(Color(0xFF4A380A), Color(0xFF3D2E08), Color(0xFF2A2208))
+    )
+    RarityTier.RARE -> Brush.linearGradient(
+        listOf(Color(0xFF2A1030), Color(0xFF1A1840), Color(0xFF281828))
     )
     RarityTier.COMMON -> Brush.linearGradient(
         listOf(DarkBlueMid, Color(0xFF141C35))

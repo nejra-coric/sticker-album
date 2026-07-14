@@ -40,7 +40,7 @@ class StatsViewModel(
             favorites = favs,
             rarityBars = rarityBars(all)
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), StatsUiState())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, StatsUiState())
 }
 
 class StatsViewModelFactory(

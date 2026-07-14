@@ -86,7 +86,16 @@ fun AlbumScreen(
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = TextWhite,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            modifier = Modifier.padding(bottom = 2.dp)
+                        )
+                    }
+                    item(span = { GridItemSpan(2) }) {
+                        Text(
+                            "Skupljeno ${state.collected} / ${state.total}  ·  ${state.percent}%",
+                            color = NeonCyan,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
                     state.error?.let { msg ->

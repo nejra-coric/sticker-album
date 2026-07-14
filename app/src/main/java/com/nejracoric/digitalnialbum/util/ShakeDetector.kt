@@ -15,10 +15,10 @@ class ShakeDetector(
         val x = event.values[0]
         val y = event.values[1]
         val z = event.values[2]
-        val g = sqrt((x * x + y * y + z * z).toDouble()) / SensorManager.GRAVITY_EARTH - 1.0
-        if (g > 2.2) {
+        val gForce = sqrt((x * x + y * y + z * z).toDouble()) / SensorManager.GRAVITY_EARTH
+        if (gForce > 1.7) {
             val now = System.currentTimeMillis()
-            if (now - lastShakeTime > 1200) {
+            if (now - lastShakeTime > 1000) {
                 lastShakeTime = now
                 onShake()
             }

@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.nejracoric.digitalnialbum.data.model.Sticker
 import com.nejracoric.digitalnialbum.ui.theme.DarkBlueMid
 import com.nejracoric.digitalnialbum.ui.theme.GoldAccent
+import com.nejracoric.digitalnialbum.ui.theme.MagentaAccent
 import com.nejracoric.digitalnialbum.ui.theme.NeonCyan
 import com.nejracoric.digitalnialbum.ui.theme.TextGray
 import com.nejracoric.digitalnialbum.ui.theme.TextWhite
@@ -52,6 +53,7 @@ fun PlayerGlassCard(
 ) {
     val tier = sticker.rarityTier()
     val golden = tier == RarityTier.LEGEND || tier == RarityTier.GOLD
+    val accented = golden || tier == RarityTier.RARE
 
     GlassCard(
         modifier = if (fillHeight) modifier.fillMaxSize() else modifier.fillMaxWidth(),
@@ -72,6 +74,7 @@ fun PlayerGlassCard(
                         fontWeight = FontWeight.Black,
                         color = when (tier) {
                             RarityTier.LEGEND, RarityTier.GOLD -> GoldAccent
+                            RarityTier.RARE -> MagentaAccent
                             RarityTier.COMMON -> NeonCyan
                         }
                     )
@@ -80,6 +83,7 @@ fun PlayerGlassCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = when (tier) {
                             RarityTier.LEGEND, RarityTier.GOLD -> GoldAccent
+                            RarityTier.RARE -> MagentaAccent
                             RarityTier.COMMON -> TextGray
                         },
                         fontWeight = FontWeight.Bold
@@ -126,13 +130,13 @@ fun PlayerGlassCard(
                     stickerId = sticker.id,
                     modifier = Modifier.fillMaxSize(),
                     owned = sticker.owned,
-                    isGolden = tier != RarityTier.COMMON,
+                    isGolden = accented,
                     contentScale = ContentScale.Fit
                 )
                 when (tier) {
                     RarityTier.LEGEND -> HolographicOverlay(Modifier.fillMaxSize())
                     RarityTier.GOLD -> GoldShimmerOverlay(Modifier.fillMaxSize())
-                    RarityTier.COMMON -> Unit
+                    RarityTier.RARE, RarityTier.COMMON -> Unit
                 }
             }
 
@@ -190,6 +194,9 @@ private fun cardBackground(tier: RarityTier): Brush = when (tier) {
     )
     RarityTier.GOLD -> Brush.linearGradient(
         listOf(Color(0xFF4A380A), Color(0xFF3D2E08), Color(0xFF2A2208))
+    )
+    RarityTier.RARE -> Brush.linearGradient(
+        listOf(Color(0xFF2A1030), Color(0xFF1A1840), Color(0xFF281828))
     )
     RarityTier.COMMON -> Brush.linearGradient(
         listOf(DarkBlueMid, Color(0xFF141C35))
