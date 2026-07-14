@@ -68,6 +68,7 @@ fun MainScreen(
     onFavorites: () -> Unit,
     onSettings: () -> Unit,
     onDuplicates: () -> Unit,
+    onWishlist: () -> Unit,
     onMemory: () -> Unit,
     onTrade: () -> Unit
 ) {
@@ -162,7 +163,8 @@ fun MainScreen(
                             showBack = false,
                             title = "Profil",
                             onMemory = onMemory,
-                            onTrade = onTrade
+                            onTrade = onTrade,
+                            onWishlist = onWishlist
                         )
                     }
                 }

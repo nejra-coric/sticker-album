@@ -26,6 +26,7 @@ import com.nejracoric.digitalnialbum.ui.trade.TradeViewModel
 import com.nejracoric.digitalnialbum.ui.trade.TradeViewModelFactory
 import com.nejracoric.digitalnialbum.ui.settings.SettingsScreen
 import com.nejracoric.digitalnialbum.ui.splash.SplashScreen
+import com.nejracoric.digitalnialbum.ui.wishlist.WishlistScreen
 
 @Composable
 fun AppNavHost() {
@@ -71,6 +72,7 @@ fun AppNavHost() {
                 onFavorites = { navController.navigate(Routes.FAVORITES) },
                 onSettings = { navController.navigate(Routes.SETTINGS) },
                 onDuplicates = { navController.navigate(Routes.DUPLICATES) },
+                onWishlist = { navController.navigate(Routes.WISHLIST) },
                 onMemory = { navController.navigate(Routes.MEMORY) },
                 onTrade = { navController.navigate(Routes.TRADE) }
             )
@@ -88,6 +90,16 @@ fun AppNavHost() {
         }
         composable(Routes.FAVORITES) {
             FavoritesScreen(
+                onBack = { navController.popBackStack() },
+                onOpenDetail = { id ->
+                    navController.navigate(Routes.detail(id)) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+        composable(Routes.WISHLIST) {
+            WishlistScreen(
                 onBack = { navController.popBackStack() },
                 onOpenDetail = { id ->
                     navController.navigate(Routes.detail(id)) {

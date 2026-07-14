@@ -6,6 +6,7 @@ object Routes {
     const val MAIN = "main"
     const val DETAIL = "detail/{stickerId}"
     const val FAVORITES = "favorites"
+    const val WISHLIST = "wishlist"
     const val SETTINGS = "settings"
     const val DUPLICATES = "duplicates"
     const val MEMORY = "memory"

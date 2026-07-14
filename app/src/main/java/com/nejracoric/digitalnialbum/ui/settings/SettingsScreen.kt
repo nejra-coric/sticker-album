@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +51,7 @@ fun SettingsScreen(
     title: String = "Postavke",
     onMemory: (() -> Unit)? = null,
     onTrade: (() -> Unit)? = null,
+    onWishlist: (() -> Unit)? = null,
     viewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModelFactory(
             (androidx.compose.ui.platform.LocalContext.current.applicationContext as DigitalAlbumApp).preferences
@@ -62,6 +64,8 @@ fun SettingsScreen(
     val points by app.preferences.points.collectAsState(initial = 0f)
     val missingCount = remember(stickers) { stickers.count { !it.owned } }
     val duplicateCount = remember(stickers) { stickers.count { it.ownedCount > 1 } }
+    val wishlist by app.repository.wishlist.collectAsState(initial = emptyList())
+    val wishlistCount = wishlist.size
 
     val layout by viewModel.layout.collectAsState()
     val team by viewModel.team.collectAsState()
@@ -125,6 +129,34 @@ fun SettingsScreen(
                             trailing = null
                         )
                     }
+                }
+            }
+
+            if (onWishlist != null) {
+                Text(
+                    "Kolekcija",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextWhite,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 28.dp)
+                )
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    corner = 16.dp,
+                    onClick = onWishlist
+                ) {
+                    ProfileRow(
+                        title = "Sačuvane sličice",
+                        subtitle = if (wishlistCount > 0) {
+                            "$wishlistCount na listi"
+                        } else {
+                            "Označi bookmarkom na detalju"
+                        },
+                        leading = Icons.Default.Bookmark,
+                        trailing = null
+                    )
                 }
             }
 

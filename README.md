@@ -71,8 +71,14 @@ DI je ručni (`DigitalAlbumApp` drži `StickerRepository` i `UserPreferences`). 
 
 ### Detalj sličice
 - Prikaz sličice, tima, rijetkosti.
-- Akcije u top baru: Sačuvano (wishlist), Podijeli, Favorit.
+- Akcije u top baru: **Sačuvano** (bookmark / wishlist), Podijeli, Favorit.
 - Rijetkost na osnovu `tip_slicice` / `vjerovatnoca` (i stabilan roll za katalog).
+
+### Sačuvane sličice (wishlist)
+- Ulaz: **Profil → Sačuvane sličice**.
+- Lista svih sličica označenih bookmarkom na detalju.
+- Čuva se u Room tabeli `wishlist`.
+- Prikazuje status “Već imaš” / “Tražiš”; tap otvara detalj.
 
 ### Statistika
 - Pregled kolekcije / napretka.
@@ -83,8 +89,8 @@ DI je ručni (`DigitalAlbumApp` drži `StickerRepository` i `UserPreferences`). 
 
 ### Profil (Postavke)
 - Prikaz **poena**.
-- Ulazi u **Memory** i **Trade**.
-- Dijeljenje listi (WhatsApp / Viber pretvoreno u system share intent):
+- Ulazi u **Memory**, **Trade** i **Sačuvane sličice**.
+- Dijeljenje listi (system share intent):
   - lista nedostajućih
   - lista duplikata
 - Prikaz albuma: Lista / Mreža.
@@ -200,11 +206,10 @@ Cleartext HTTP za ovaj host je dozvoljen preko network security config.
 | `detail/{stickerId}` | Detalj |
 | `favorites` | Favoriti |
 | `settings` | Profil / postavke |
+| `wishlist` | Sačuvane sličice |
 | `duplicates` | Duplikati |
 | `memory` | Memory igra |
 | `trade` | Trade |
-
-> Napomena: `WishlistScreen` postoji u kodu, ali nije vezan na zasebnu rutu — wishlist se upravlja s detalja sličice.
 
 ---
 
@@ -260,21 +265,20 @@ app/src/main/java/com/nejracoric/digitalnialbum/
 - [x] Sync s REST API-jem + poštovanje rate limita
 - [x] Otvaranje paketića (5 sličica), folija, SwipingCards
 - [x] Free / plaćeni paketići poenima
-- [x] Favoriti, wishlist, duplikati, statistika
+- [x] Favoriti, sačuvane (wishlist), duplikati, statistika
 - [x] Detalj sličice + share
 - [x] Glassmorphic UI, custom ikona i splash
 - [x] Image disk cache (sličice + grbovi)
 - [x] Memory igra po levelima + poeni
 - [x] Simulirani Trade (duplikat ↔ nedostajuća + poeni)
-- [x] Profil: poeni, layout, omiljeni tim, ulazi u igrice
+- [x] Profil: poeni, layout, omiljeni tim, Sačuvane, ulazi u igrice
 
 ---
 
 ## Ograničenja / napomene
 
 - Trade **nije** pravi multiplayer — nema backend trade API-ja.
-- Wishlist ekran nije u navigaciji (samo DB + akcije na detalju).
-- Bez mreže nema novih paketića / force refresh-a; lokalni album i Memory (ako ima keša) rade.
+- Bez mreže nema novih paketića / force refresh-a; lokalni album, Sačuvane i Memory (ako ima keša) rade.
 - API je HTTP (cleartext) na fiksnoj IP adresi.
 
 ---
