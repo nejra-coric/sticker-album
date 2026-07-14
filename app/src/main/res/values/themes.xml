@@ -3,6 +3,8 @@
     <style name="Theme.DigitalniAlbum" parent="android:Theme.Material.Light.NoActionBar" />
     <style name="Theme.DigitalniAlbum.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/splash_background</item>
         <item name="postSplashScreenTheme">@style/Theme.DigitalniAlbum</item>
     </style>
 </resources>

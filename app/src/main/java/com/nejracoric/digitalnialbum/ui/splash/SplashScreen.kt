@@ -1,5 +1,6 @@
 package com.nejracoric.digitalnialbum.ui.splash
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -7,23 +8,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.School
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.nejracoric.digitalnialbum.R
 import com.nejracoric.digitalnialbum.ui.components.GlassBackground
-import com.nejracoric.digitalnialbum.ui.components.GlassCard
 import com.nejracoric.digitalnialbum.ui.theme.GoldAccent
 import com.nejracoric.digitalnialbum.ui.theme.NeonCyan
 import com.nejracoric.digitalnialbum.ui.theme.TextGray
@@ -49,7 +49,6 @@ fun SplashScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.School, null, tint = NeonCyan, modifier = Modifier.size(28.dp))
                 Text(
                     "Odsjek za matematičke i kompjuterske nauke",
                     color = TextGray,
@@ -59,43 +58,29 @@ fun SplashScreen(
                 )
             }
 
-            GlassCard(corner = 24.dp, golden = true) {
-                Column(
-                    Modifier.padding(horizontal = 36.dp, vertical = 28.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        "20",
-                        fontSize = 72.sp,
-                        fontWeight = FontWeight.Black,
-                        color = NeonCyan
-                    )
-                    Icon(
-                        Icons.Default.EmojiEvents,
-                        contentDescription = null,
-                        tint = GoldAccent,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Text(
-                        "26",
-                        fontSize = 72.sp,
-                        fontWeight = FontWeight.Black,
-                        color = NeonCyan
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "DIGITALNI ALBUM",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = TextWhite,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "ZA SKUPLJANJE SLIČICA 2026",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = GoldAccent,
-                        textAlign = TextAlign.Center
-                    )
-                }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Image(
+                    painter = painterResource(R.drawable.ic_splash_logo),
+                    contentDescription = "Digitalni album",
+                    modifier = Modifier
+                        .size(180.dp)
+                        .clip(RoundedCornerShape(36.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    "DIGITALNI ALBUM",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextWhite,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "ZA SKUPLJANJE SLIČICA 2026",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = GoldAccent,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

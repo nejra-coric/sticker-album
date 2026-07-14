@@ -77,4 +77,10 @@ interface StickerDao {
 
     @Query("SELECT stickerId FROM owned_stickers WHERE obtainedAt = :ts ORDER BY rowId ASC")
     suspend fun stickerIdsAt(ts: Long): List<Int>
+
+    @Query("SELECT rowId FROM owned_stickers WHERE stickerId = :stickerId LIMIT 1")
+    suspend fun firstOwnedRowId(stickerId: Int): Long?
+
+    @Query("DELETE FROM owned_stickers WHERE rowId = :rowId")
+    suspend fun deleteOwnedRow(rowId: Long)
 }

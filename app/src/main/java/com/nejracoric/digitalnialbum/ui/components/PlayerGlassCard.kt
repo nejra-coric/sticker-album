@@ -124,20 +124,23 @@ fun PlayerGlassCard(
                     .clip(ImageShape)
                     .background(cardBackground(tier))
             ) {
-                StickerImage(
-                    url = sticker.effectiveImageUrl(),
-                    name = sticker.name,
-                    stickerId = sticker.id,
-                    modifier = Modifier.fillMaxSize(),
-                    owned = sticker.owned,
-                    isGolden = accented,
-                    contentScale = ContentScale.Fit
-                )
+                // Shimmer / hologram na okviru IZA sličice, ne preko nje
                 when (tier) {
                     RarityTier.LEGEND -> HolographicOverlay(Modifier.fillMaxSize())
                     RarityTier.GOLD -> GoldShimmerOverlay(Modifier.fillMaxSize())
                     RarityTier.RARE, RarityTier.COMMON -> Unit
                 }
+                StickerImage(
+                    url = sticker.effectiveImageUrl(),
+                    name = sticker.name,
+                    stickerId = sticker.id,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(if (accented) 8.dp else 4.dp),
+                    owned = sticker.owned,
+                    isGolden = false,
+                    contentScale = ContentScale.Fit
+                )
             }
 
             Box(

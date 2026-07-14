@@ -63,8 +63,11 @@ fun PackScreen(
     onOpenDetail: (Int) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
+    val points by viewModel.points.collectAsState()
+    val freeUsed by viewModel.freePacksUsed.collectAsState()
     val context = LocalContext.current
     val showCards = state.phase == PackPhase.CARDS && state.lastPack.isNotEmpty()
+    val freeLeft = (com.nejracoric.digitalnialbum.data.preferences.Economy.FREE_PACKS - freeUsed).coerceAtLeast(0)
     val scale by animateFloatAsState(
         if (state.opening) 1.06f else 1f,
         animationSpec = spring(),
@@ -105,7 +108,17 @@ fun PackScreen(
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.sp,
-                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+            )
+            Text(
+                if (freeLeft > 0) {
+                    "Besplatno: $freeLeft · Poeni: ${"%.1f".format(points).trimEnd('0').trimEnd('.')}"
+                } else {
+                    "Novi paketić = ${com.nejracoric.digitalnialbum.data.preferences.Economy.PACK_COST.toInt()} poena · Imaš ${"%.1f".format(points).trimEnd('0').trimEnd('.')}"
+                },
+                color = GoldAccent,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             AnimatedContent(

@@ -27,6 +27,23 @@ object ImageCache {
         return File(context.filesDir, "cache/crests/$code.png")
     }
 
+    fun listCachedStickerIds(context: Context): List<Int> {
+        val dir = File(context.filesDir, "cache/stickers")
+        if (!dir.exists()) return emptyList()
+        return dir.listFiles()
+            ?.mapNotNull { f ->
+                f.nameWithoutExtension.toIntOrNull()?.takeIf { f.length() > 0 }
+            }
+            ?.sorted()
+            .orEmpty()
+    }
+
+    fun listCachedCrestFiles(context: Context): List<File> {
+        val dir = File(context.filesDir, "cache/crests")
+        if (!dir.exists()) return emptyList()
+        return dir.listFiles()?.filter { it.length() > 0 }.orEmpty()
+    }
+
     fun resolveSticker(context: Context, stickerId: Int?, remoteUrl: String): Any {
         if (stickerId != null) {
             val local = stickerFile(context, stickerId)

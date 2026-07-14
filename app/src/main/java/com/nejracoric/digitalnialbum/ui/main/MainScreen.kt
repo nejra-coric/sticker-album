@@ -67,7 +67,9 @@ fun MainScreen(
     onOpenDetail: (Int) -> Unit,
     onFavorites: () -> Unit,
     onSettings: () -> Unit,
-    onDuplicates: () -> Unit
+    onDuplicates: () -> Unit,
+    onMemory: () -> Unit,
+    onTrade: () -> Unit
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
@@ -132,7 +134,7 @@ fun MainScreen(
                             val packVm: PackViewModel = viewModel(
                                 viewModelStoreOwner = entry,
                                 key = "pack_vm",
-                                factory = PackViewModelFactory(app.repository)
+                                factory = PackViewModelFactory(app.repository, app.preferences)
                             )
                             PackScreen(
                                 viewModel = packVm,
@@ -155,7 +157,13 @@ fun MainScreen(
                                 showTitle = true
                             )
                         }
-                        4 -> SettingsScreen(onBack = {}, showBack = false, title = "Profil")
+                        4 -> SettingsScreen(
+                            onBack = {},
+                            showBack = false,
+                            title = "Profil",
+                            onMemory = onMemory,
+                            onTrade = onTrade
+                        )
                     }
                 }
             }

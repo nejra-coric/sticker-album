@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nejracoric.digitalnialbum.data.model.FilterOwned
@@ -62,6 +63,8 @@ fun AlbumScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var sortExpanded by remember { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val columns = if (configuration.screenWidthDp >= 600) 3 else 2
 
     GlassBackground {
         if (state.isLoading) {
@@ -75,12 +78,12 @@ fun AlbumScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                    columns = GridCells.Fixed(columns),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item(span = { GridItemSpan(2) }) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         Text(
                             "GLAVNI ALBUM",
                             style = MaterialTheme.typography.titleLarge,
@@ -89,7 +92,7 @@ fun AlbumScreen(
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                     }
-                    item(span = { GridItemSpan(2) }) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         Text(
                             "Skupljeno ${state.collected} / ${state.total}  ·  ${state.percent}%",
                             color = NeonCyan,
@@ -99,7 +102,7 @@ fun AlbumScreen(
                         )
                     }
                     state.error?.let { msg ->
-                        item(span = { GridItemSpan(2) }) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
                             Text(
                                 msg,
                                 color = Color(0xFFFFB74D),
@@ -108,7 +111,7 @@ fun AlbumScreen(
                             )
                         }
                     }
-                    item(span = { GridItemSpan(2) }) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         OutlinedTextField(
                             value = state.searchQuery,
                             onValueChange = viewModel::onSearchChange,
@@ -126,7 +129,7 @@ fun AlbumScreen(
                             )
                         )
                     }
-                    item(span = { GridItemSpan(2) }) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         Box {
                             Row(
                                 modifier = Modifier
@@ -162,7 +165,7 @@ fun AlbumScreen(
                             }
                         }
                     }
-                    item(span = { GridItemSpan(2) }) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(
                                 listOf(
@@ -180,7 +183,7 @@ fun AlbumScreen(
                         }
                     }
                     if (state.stickers.isEmpty()) {
-                        item(span = { GridItemSpan(2) }) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
                             Box(
                                 Modifier.fillMaxWidth().padding(32.dp),
                                 contentAlignment = Alignment.Center

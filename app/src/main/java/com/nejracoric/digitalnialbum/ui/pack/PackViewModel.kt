@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.nejracoric.digitalnialbum.data.model.Sticker
+import com.nejracoric.digitalnialbum.data.preferences.Economy
+import com.nejracoric.digitalnialbum.data.preferences.UserPreferences
 import com.nejracoric.digitalnialbum.data.repository.RepoResult
 import com.nejracoric.digitalnialbum.data.repository.StickerRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -24,11 +28,15 @@ data class PackUiState(
 )
 
 class PackViewModel(
-    private val repository: StickerRepository
+    private val repository: StickerRepository,
+    private val preferences: UserPreferences
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PackUiState())
     val state = _state.asStateFlow()
+
+    val points = preferences.points.stateIn(viewModelScope, SharingStarted.Eagerly, 0f)
+    val freePacksUsed = preferences.freePacksUsed.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     init {
         viewModelScope.launch {
@@ -73,12 +81,6 @@ class PackViewModel(
         revealOrOpenPack()
     }
 
-    /**
-     * Na foilu:
-     * - ako je korisnik rekao "Otvori novi" → API
-     * - inače → ista simulacija / zadnji paketić iz Room-a
-     * - ako nema memorije → API (prvi put)
-     */
     fun revealOrOpenPack() {
         if (_state.value.opening) return
         val wantsFresh = _state.value.requestFreshPack
@@ -106,9 +108,25 @@ class PackViewModel(
                 return@launch
             }
 
+            val used = freePacksUsed.value
+            val pts = points.value
+            if (used >= Economy.FREE_PACKS) {
+                if (pts < Economy.PACK_COST) {
+                    _state.update {
+                        it.copy(
+                            error = "Nemaš dovoljno poena (${Economy.PACK_COST.toInt()} potreban). Igraj Memory ili Trade!"
+                        )
+                    }
+                    return@launch
+                }
+            }
+
             _state.update { it.copy(opening = true, error = null, phase = PackPhase.FOIL) }
             when (val result = repository.openPack()) {
                 is RepoResult.Success -> {
+                    if (!preferences.consumeFreePack()) {
+                        preferences.trySpendPoints(Economy.PACK_COST)
+                    }
                     _state.update {
                         it.copy(
                             lastPack = result.data,
@@ -134,10 +152,11 @@ class PackViewModel(
 }
 
 class PackViewModelFactory(
-    private val repository: StickerRepository
+    private val repository: StickerRepository,
+    private val preferences: UserPreferences
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return PackViewModel(repository) as T
+        return PackViewModel(repository, preferences) as T
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,6 +48,8 @@ fun SettingsScreen(
     onBack: () -> Unit,
     showBack: Boolean = true,
     title: String = "Postavke",
+    onMemory: (() -> Unit)? = null,
+    onTrade: (() -> Unit)? = null,
     viewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModelFactory(
             (androidx.compose.ui.platform.LocalContext.current.applicationContext as DigitalAlbumApp).preferences
@@ -55,6 +59,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val app = context.applicationContext as DigitalAlbumApp
     val stickers by app.repository.stickers.collectAsState(initial = emptyList())
+    val points by app.preferences.points.collectAsState(initial = 0f)
     val missingCount = remember(stickers) { stickers.count { !it.owned } }
     val duplicateCount = remember(stickers) { stickers.count { it.ownedCount > 1 } }
 
@@ -77,10 +82,58 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             Text(
+                "Poeni: ${"%.1f".format(points).trimEnd('0').trimEnd('.')}",
+                color = GoldAccent,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            if (onMemory != null || onTrade != null) {
+                Text(
+                    "Igrice",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextWhite,
+                    fontWeight = FontWeight.Bold
+                )
+                if (onMemory != null) {
+                    GlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
+                        corner = 16.dp,
+                        golden = true,
+                        onClick = onMemory
+                    ) {
+                        ProfileRow(
+                            title = "Memory",
+                            subtitle = "Leveli · zaradi poene za paketiće",
+                            trailing = null
+                        )
+                    }
+                }
+                if (onTrade != null) {
+                    GlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
+                        corner = 16.dp,
+                        onClick = onTrade
+                    ) {
+                        ProfileRow(
+                            title = "Trade",
+                            subtitle = "Zamijeni duplikat za nedostajuću (+poeni)",
+                            trailing = null
+                        )
+                    }
+                }
+            }
+
+            Text(
                 "Podijeli album",
                 style = MaterialTheme.typography.titleMedium,
                 color = TextWhite,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 28.dp)
             )
             GlassCard(
                 modifier = Modifier
@@ -89,10 +142,12 @@ fun SettingsScreen(
                 corner = 16.dp,
                 onClick = { ShareUtil.shareMissingList(context, stickers) }
             ) {
-                ShareRow(
+                ProfileRow(
                     title = "Lista nedostajućih",
                     subtitle = if (missingCount > 0) "$missingCount sličica" else "Album je kompletan",
-                    enabled = missingCount > 0
+                    enabled = missingCount > 0,
+                    leading = Icons.Default.Share,
+                    trailing = "WhatsApp / Viber"
                 )
             }
             GlassCard(
@@ -102,10 +157,12 @@ fun SettingsScreen(
                 corner = 16.dp,
                 onClick = { ShareUtil.shareDuplicatesList(context, stickers) }
             ) {
-                ShareRow(
+                ProfileRow(
                     title = "Moji duplikati",
                     subtitle = if (duplicateCount > 0) "$duplicateCount za zamjenu" else "Nema duplikata",
-                    enabled = duplicateCount > 0
+                    enabled = duplicateCount > 0,
+                    leading = Icons.Default.Share,
+                    trailing = "WhatsApp / Viber"
                 )
             }
 
@@ -168,10 +225,12 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun ShareRow(
+private fun ProfileRow(
     title: String,
     subtitle: String,
-    enabled: Boolean
+    enabled: Boolean = true,
+    leading: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+    trailing: String? = null
 ) {
     Row(
         Modifier
@@ -180,7 +239,7 @@ private fun ShareRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            Icons.Default.Share,
+            leading,
             contentDescription = null,
             tint = if (enabled) GoldAccent else TextGray,
             modifier = Modifier.size(22.dp)
@@ -194,11 +253,13 @@ private fun ShareRow(
             )
             Text(subtitle, color = TextGray, style = MaterialTheme.typography.bodySmall)
         }
-        Text(
-            "WhatsApp / Viber",
-            color = if (enabled) NeonCyan else TextGray,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(start = 8.dp)
-        )
+        if (trailing != null) {
+            Text(
+                trailing,
+                color = if (enabled) NeonCyan else TextGray,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
     }
 }

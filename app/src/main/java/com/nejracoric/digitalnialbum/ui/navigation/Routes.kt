@@ -8,6 +8,8 @@ object Routes {
     const val FAVORITES = "favorites"
     const val SETTINGS = "settings"
     const val DUPLICATES = "duplicates"
+    const val MEMORY = "memory"
+    const val TRADE = "trade"
 
     fun detail(id: Int) = "detail/$id"
 }

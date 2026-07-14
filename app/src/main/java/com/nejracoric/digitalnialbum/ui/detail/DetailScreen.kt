@@ -237,21 +237,24 @@ private fun DetailHeroCard(
                     Modifier
                         .fillMaxWidth()
                         .height(380.dp)
+                        .background(detailCardBackground(tier))
                 ) {
-                    StickerImage(
-                        url = sticker.effectiveImageUrl(),
-                        name = sticker.name,
-                        stickerId = sticker.id,
-                        modifier = Modifier.fillMaxSize(),
-                        owned = sticker.owned,
-                        isGolden = golden,
-                        contentScale = ContentScale.Fit
-                    )
                     when (tier) {
                         RarityTier.LEGEND -> HolographicOverlay(Modifier.fillMaxSize())
                         RarityTier.GOLD -> GoldShimmerOverlay(Modifier.fillMaxSize())
                         RarityTier.RARE, RarityTier.COMMON -> Unit
                     }
+                    StickerImage(
+                        url = sticker.effectiveImageUrl(),
+                        name = sticker.name,
+                        stickerId = sticker.id,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 20.dp, vertical = 28.dp),
+                        owned = sticker.owned,
+                        isGolden = false,
+                        contentScale = ContentScale.Fit
+                    )
                     Column(Modifier.padding(16.dp)) {
                         Text(
                             "${sticker.displayRating()}",

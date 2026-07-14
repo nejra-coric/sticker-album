@@ -259,6 +259,25 @@ class StickerRepository(
         else dao.addWish(WishlistEntity(stickerId))
     }
 
+    /**
+     * Trade: daješ jednu kopiju duplikata, dobijaš nedostajuću sličicu.
+     */
+    suspend fun applyTrade(receiveId: Int, giveDuplicateId: Int): Boolean {
+        if (dao.ownedCountFor(giveDuplicateId) < 2) return false
+        if (dao.isOwned(receiveId)) return false
+        val rowId = dao.firstOwnedRowId(giveDuplicateId) ?: return false
+        return db.withTransaction {
+            dao.deleteOwnedRow(rowId)
+            dao.insertOwned(
+                OwnedStickerEntity(
+                    stickerId = receiveId,
+                    obtainedAt = System.currentTimeMillis()
+                )
+            )
+            true
+        }
+    }
+
     /** Preuzima grbove i sličice u lokalni keš. Pri startu samo skupljene; nakon synca cijeli katalog. */
     suspend fun prefetchCachedImages(includeFullCatalog: Boolean = false) {
         val catalog = dao.observeCatalog().first()

@@ -18,6 +18,12 @@ import com.nejracoric.digitalnialbum.ui.duplicates.DuplicatesScreen
 import com.nejracoric.digitalnialbum.ui.favorites.FavoritesScreen
 import com.nejracoric.digitalnialbum.ui.main.MainScreen
 import com.nejracoric.digitalnialbum.ui.onboarding.OnboardingScreen
+import com.nejracoric.digitalnialbum.ui.memory.MemoryScreen
+import com.nejracoric.digitalnialbum.ui.memory.MemoryViewModel
+import com.nejracoric.digitalnialbum.ui.memory.MemoryViewModelFactory
+import com.nejracoric.digitalnialbum.ui.trade.TradeScreen
+import com.nejracoric.digitalnialbum.ui.trade.TradeViewModel
+import com.nejracoric.digitalnialbum.ui.trade.TradeViewModelFactory
 import com.nejracoric.digitalnialbum.ui.settings.SettingsScreen
 import com.nejracoric.digitalnialbum.ui.splash.SplashScreen
 
@@ -64,7 +70,9 @@ fun AppNavHost() {
                 },
                 onFavorites = { navController.navigate(Routes.FAVORITES) },
                 onSettings = { navController.navigate(Routes.SETTINGS) },
-                onDuplicates = { navController.navigate(Routes.DUPLICATES) }
+                onDuplicates = { navController.navigate(Routes.DUPLICATES) },
+                onMemory = { navController.navigate(Routes.MEMORY) },
+                onTrade = { navController.navigate(Routes.TRADE) }
             )
         }
         composable(
@@ -100,6 +108,14 @@ fun AppNavHost() {
                     }
                 }
             )
+        }
+        composable(Routes.MEMORY) {
+            val vm: MemoryViewModel = viewModel(factory = MemoryViewModelFactory(app))
+            MemoryScreen(viewModel = vm, onBack = { navController.popBackStack() })
+        }
+        composable(Routes.TRADE) {
+            val vm: TradeViewModel = viewModel(factory = TradeViewModelFactory(app))
+            TradeScreen(viewModel = vm, onBack = { navController.popBackStack() })
         }
     }
 }
